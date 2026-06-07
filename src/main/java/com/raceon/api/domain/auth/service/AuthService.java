@@ -5,10 +5,6 @@ import com.raceon.api.domain.auth.dto.SocialLoginRequest;
 import com.raceon.api.domain.auth.entity.User;
 import com.raceon.api.domain.auth.repository.UserRepository;
 import com.raceon.api.global.jwt.JwtProvider;
-import com.raceon.api.global.social.GoogleSocialClient;
-import com.raceon.api.global.social.KakaoSocialClient;
-import com.raceon.api.global.social.NaverSocialClient;
-import com.raceon.api.global.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,49 +22,43 @@ public class AuthService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
-    private final KakaoSocialClient kakaoSocialClient;
-    private final NaverSocialClient naverSocialClient;
-    private final GoogleSocialClient googleSocialClient;
 
     @Transactional
     public LoginResponse kakaoLogin(SocialLoginRequest request) {
-        SocialUserInfo info = kakaoSocialClient.getUserInfo(request.getAccessToken());
-        User user = userRepository.findByKakaoId(info.getSocialId())
+        User user = userRepository.findByKakaoId(request.getSocialId())
                 .orElseGet(() -> userRepository.save(User.builder()
-                        .kakaoId(info.getSocialId())
-                        .nickname(info.getNickname())
-                        .profileImage(info.getProfileImage())
-                        .gender(info.getGender())
-                        .birthday(info.getBirthday())
-                        .phone(info.getPhone())
+                        .kakaoId(request.getSocialId())
+                        .nickname(request.getNickname())
+                        .profileImage(request.getProfileImage())
+                        .gender(request.getGender())
+                        .birthday(request.getBirthday())
+                        .phone(request.getPhone())
                         .build()));
         return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
     }
 
     @Transactional
     public LoginResponse naverLogin(SocialLoginRequest request) {
-        SocialUserInfo info = naverSocialClient.getUserInfo(request.getAccessToken());
-        User user = userRepository.findByNaverId(info.getSocialId())
+        User user = userRepository.findByNaverId(request.getSocialId())
                 .orElseGet(() -> userRepository.save(User.builder()
-                        .naverId(info.getSocialId())
-                        .nickname(info.getNickname())
-                        .profileImage(info.getProfileImage())
-                        .gender(info.getGender())
-                        .age(info.getAge())
-                        .birthday(info.getBirthday())
-                        .phone(info.getPhone())
+                        .naverId(request.getSocialId())
+                        .nickname(request.getNickname())
+                        .profileImage(request.getProfileImage())
+                        .gender(request.getGender())
+                        .age(request.getAge())
+                        .birthday(request.getBirthday())
+                        .phone(request.getPhone())
                         .build()));
         return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
     }
 
     @Transactional
     public LoginResponse googleLogin(SocialLoginRequest request) {
-        SocialUserInfo info = googleSocialClient.getUserInfo(request.getAccessToken());
-        User user = userRepository.findByGoogleId(info.getSocialId())
+        User user = userRepository.findByGoogleId(request.getSocialId())
                 .orElseGet(() -> userRepository.save(User.builder()
-                        .googleId(info.getSocialId())
-                        .nickname(info.getNickname())
-                        .profileImage(info.getProfileImage())
+                        .googleId(request.getSocialId())
+                        .nickname(request.getNickname())
+                        .profileImage(request.getProfileImage())
                         .build()));
         return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
     }

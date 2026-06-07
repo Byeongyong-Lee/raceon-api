@@ -108,6 +108,20 @@ public class RaceCrawlerService {
         return count;
     }
 
+    public int crawlRange(int startYear, int endYear) {
+        int total = 0;
+        for (int year = startYear; year <= endYear; year++) {
+            try {
+                int count = crawl(year);
+                log.info("{}년 크롤링 완료: {}개", year, count);
+                total += count;
+            } catch (Exception e) {
+                log.error("{}년 크롤링 실패: {}", year, e.getMessage());
+            }
+        }
+        return total;
+    }
+
     private String extractSourceId(String href) {
         Matcher m = SOURCE_ID_PATTERN.matcher(href);
         return m.find() ? m.group(1) : null;

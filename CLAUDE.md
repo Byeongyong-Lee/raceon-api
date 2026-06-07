@@ -86,10 +86,12 @@ com.raceon.api
 
 ## 인증 흐름
 
-1. React Native → 소셜 SDK로 `accessToken` 획득
-2. `POST /api/auth/{kakao|naver|google}` + `{ "accessToken": "..." }`
-3. 서버 → 소셜 API로 사용자 정보 조회 → DB upsert → JWT 발급
+1. React Native → 소셜 SDK로 사용자 정보 직접 획득
+2. `POST /api/auth/{kakao|naver|google}` + `{ "socialId": "...", "nickname": "...", "profileImage": "...", "gender": "...", "age": "...", "birthday": "...", "phone": "..." }`
+3. 서버 → socialId로 DB 조회 → 없으면 신규 저장, 있으면 조회 → JWT 발급
 4. 이후 요청: `Authorization: Bearer <token>` 헤더 필수
+
+서버에서 소셜 API를 직접 호출하지 않음. 클라이언트가 소셜 SDK로 사용자 정보를 수집해 전달.
 
 `/api/auth/**`, `/api/races` 인증 불필요. 나머지 전체 인증 필요. JWT subject = `userIdx`.
 
@@ -99,6 +101,7 @@ com.raceon.api
 - **인코딩**: EUC-KR → Jsoup으로 파싱
 - **스케줄**: 매일 오전 3시 자동 실행 (`@Scheduled(cron = "0 0 3 * * *")`)
 - **수동 실행**: `POST /api/admin/crawl?year=2026`
+- **범위 크롤링**: `POST /api/admin/crawl/range?startYear=2000&endYear=2025`
 - **조회**: `GET /api/races` (인증 불필요)
 - **upsert 기준**: `sourceId` (roadrun.co.kr의 대회 고유번호)
 

@@ -25,4 +25,9 @@ public class RaceAdminController {
             throw new IllegalStateException("크롤링 실패: " + e.getMessage());
         }
     }
+
+    @PostMapping("/api/admin/crawl/range")
+    public ApiResponse<Integer> crawlRange(@RequestParam int startYear, @RequestParam int endYear) {
+        return ApiResponse.ok(raceCrawlerService.crawlRange(startYear, endYear));
+    }
 }
