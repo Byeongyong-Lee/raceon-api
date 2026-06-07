@@ -91,7 +91,7 @@ com.raceon.api
 3. 서버 → 소셜 API로 사용자 정보 조회 → DB upsert → JWT 발급
 4. 이후 요청: `Authorization: Bearer <token>` 헤더 필수
 
-`/api/auth/**` 만 인증 불필요. JWT subject = `userId(Long)`.
+`/api/auth/**`, `/api/races` 인증 불필요. 나머지 전체 인증 필요. JWT subject = `userIdx`.
 
 ## 마라톤 대회 크롤링
 
