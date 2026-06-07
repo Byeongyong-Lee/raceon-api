@@ -59,8 +59,7 @@ com.raceon.api
 │   │   └── JwtAccessDeniedHandler.java
 │   ├── exception/GlobalExceptionHandler.java
 │   ├── jwt/JwtProvider.java, JwtAuthenticationFilter.java
-│   ├── response/ApiResponse.java
-│   └── social/KakaoSocialClient, NaverSocialClient, GoogleSocialClient
+│   └── response/ApiResponse.java
 └── ApiApplication.java
 ```
 
