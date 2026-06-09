@@ -43,14 +43,18 @@ com.raceon.api
 │   │   ├── entity/User.java
 │   │   ├── repository/UserRepository.java
 │   │   └── service/AuthService.java              # UserDetailsService 구현
-│   └── race/
-│       ├── controller/RaceController.java          # GET /api/races
-│       ├── controller/RaceAdminController.java     # POST /api/admin/crawl
-│       ├── dto/RaceResponse.java
-│       ├── entity/Race.java
-│       ├── repository/RaceRepository.java
-│       ├── service/RaceService.java                # 조회 로직
-│       └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
+│   ├── race/
+│   │   ├── controller/RaceController.java          # GET /api/races
+│   │   ├── controller/RaceAdminController.java     # POST /api/admin/crawl
+│   │   ├── dto/RaceResponse.java
+│   │   ├── entity/Race.java
+│   │   ├── repository/RaceRepository.java
+│   │   ├── service/RaceService.java                # 조회 로직
+│   │   └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
+│   └── user/
+│       ├── controller/UserController.java          # GET /api/users/me
+│       ├── dto/UserResponse.java
+│       └── service/UserService.java                # 유저 조회 로직
 ├── global/
 │   ├── config/
 │   │   ├── SecurityConfig.java

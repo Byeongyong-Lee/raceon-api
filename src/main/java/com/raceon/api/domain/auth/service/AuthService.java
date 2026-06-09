@@ -46,10 +46,16 @@ public class AuthService implements UserDetailsService {
                         .profileImage(request.getProfileImage())
                         .gender(request.getGender())
                         .age(request.getAge())
-                        .birthday(request.getBirthday())
+                        .birthday(parseNaverBirthday(request.getBirthday()))
                         .phone(request.getPhone())
                         .build()));
         return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
+    }
+
+    // 네이버 SDK는 birthday를 "MM-DD" 형식으로 전달 → "MMDD"로 변환
+    private String parseNaverBirthday(String birthday) {
+        if (birthday == null) return null;
+        return birthday.replace("-", "");
     }
 
     @Transactional
