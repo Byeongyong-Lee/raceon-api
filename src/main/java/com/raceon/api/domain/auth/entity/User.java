@@ -48,6 +48,9 @@ public class User {
     private String phone;
 
     @Column(columnDefinition = "TEXT")
+    private String jwtToken;
+
+    @Column(columnDefinition = "TEXT")
     private String fcmToken;
 
     @Column(nullable = false, length = 10)
@@ -61,6 +64,10 @@ public class User {
     @UpdateTimestamp
     @Column(name = "update_dt", nullable = false)
     private LocalDateTime updateDt;
+
+    public void updateJwtToken(String jwtToken) {
+        this.jwtToken = jwtToken;
+    }
 
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;

@@ -34,7 +34,7 @@ public class AuthService implements UserDetailsService {
                         .birthday(request.getBirthday())
                         .phone(request.getPhone())
                         .build()));
-        return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
+        return issueToken(user);
     }
 
     @Transactional
@@ -49,13 +49,7 @@ public class AuthService implements UserDetailsService {
                         .birthday(parseNaverBirthday(request.getBirthday()))
                         .phone(request.getPhone())
                         .build()));
-        return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
-    }
-
-    // 네이버 SDK는 birthday를 "MM-DD" 형식으로 전달 → "MMDD"로 변환
-    private String parseNaverBirthday(String birthday) {
-        if (birthday == null) return null;
-        return birthday.replace("-", "");
+        return issueToken(user);
     }
 
     @Transactional
@@ -66,7 +60,19 @@ public class AuthService implements UserDetailsService {
                         .nickname(request.getNickname())
                         .profileImage(request.getProfileImage())
                         .build()));
-        return new LoginResponse(jwtProvider.generateToken(user.getUserIdx()), user);
+        return issueToken(user);
+    }
+
+    private LoginResponse issueToken(User user) {
+        String token = jwtProvider.generateToken(user.getUserIdx());
+        user.updateJwtToken(token);
+        return new LoginResponse(token, user);
+    }
+
+    // 네이버 SDK는 birthday를 "MM-DD" 형식으로 전달 → "MMDD"로 변환
+    private String parseNaverBirthday(String birthday) {
+        if (birthday == null) return null;
+        return birthday.replace("-", "");
     }
 
     @Override
