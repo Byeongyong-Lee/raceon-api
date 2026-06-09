@@ -38,6 +38,7 @@ out/
 
 ### Runtime logs ###
 bootrun*.log
+logs/
 
 ### Claude Code ###
 .claude/
