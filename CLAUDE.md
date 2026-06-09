@@ -52,9 +52,9 @@ com.raceon.api
 │   │   ├── service/RaceService.java                # 조회 로직
 │   │   └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
 │   └── user/
-│       ├── controller/UserController.java          # GET /api/users/me
+│       ├── controller/UserController.java          # GET /api/users/me (JWT 토큰으로 조회)
 │       ├── dto/UserResponse.java
-│       └── service/UserService.java                # 유저 조회 로직
+│       └── service/UserService.java                # jwt_token으로 유저 조회
 ├── global/
 │   ├── config/
 │   │   ├── SecurityConfig.java
@@ -140,6 +140,7 @@ com.raceon.api
 | age | age | VARCHAR(10) |
 | birthday | birthday | VARCHAR(4), MMDD |
 | phone | phone | VARCHAR(20) |
+| jwt_token | jwtToken | TEXT, 로그인 시 발급된 JWT 저장 (재로그인 시 갱신) |
 | fcm_token | fcmToken | TEXT, 푸시 알림용 |
 | role | role | VARCHAR(10), 기본값 USER |
 | create_dt | createDt | TIMESTAMP NOT NULL DEFAULT NOW() |
