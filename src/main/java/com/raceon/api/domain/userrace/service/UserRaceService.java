@@ -9,6 +9,7 @@ import com.raceon.api.domain.userrace.dto.UserRaceRegisterRequest;
 import com.raceon.api.domain.userrace.dto.UserRaceResponse;
 import com.raceon.api.domain.userrace.entity.UserRace;
 import com.raceon.api.domain.userrace.repository.UserRaceRepository;
+import com.raceon.api.domain.userrace.repository.UserRaceSearchCondition;
 import com.raceon.api.global.upload.FileUploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,11 @@ public class UserRaceService {
 
     @Transactional
     public UserRaceResponse register(Long userIdx, UserRaceRegisterRequest request) {
-        if (userRaceRepository.existsByUserUserIdxAndRaceRaceIdxAndDelAt(userIdx, request.getRaceIdx(), "N")) {
+        if (userRaceRepository.existsActive(UserRaceSearchCondition.builder()
+                .userIdx(userIdx)
+                .raceIdx(request.getRaceIdx())
+                .delAt("N")
+                .build())) {
             throw new IllegalArgumentException("이미 등록된 대회입니다.");
         }
         User user = userRepository.findById(userIdx)
@@ -58,7 +63,10 @@ public class UserRaceService {
     }
 
     public List<UserRaceResponse> getMyRaces(Long userIdx) {
-        return userRaceRepository.findByUserUserIdxAndDelAtOrderByCreateDtDesc(userIdx, "N")
+        return userRaceRepository.search(UserRaceSearchCondition.builder()
+                        .userIdx(userIdx)
+                        .delAt("N")
+                        .build())
                 .stream().map(UserRaceResponse::new).toList();
     }
 
