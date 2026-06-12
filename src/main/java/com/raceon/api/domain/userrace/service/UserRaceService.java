@@ -9,9 +9,11 @@ import com.raceon.api.domain.userrace.dto.UserRaceRegisterRequest;
 import com.raceon.api.domain.userrace.dto.UserRaceResponse;
 import com.raceon.api.domain.userrace.entity.UserRace;
 import com.raceon.api.domain.userrace.repository.UserRaceRepository;
+import com.raceon.api.global.upload.FileUploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +25,7 @@ public class UserRaceService {
     private final UserRaceRepository userRaceRepository;
     private final UserRepository userRepository;
     private final RaceRepository raceRepository;
+    private final FileUploadService fileUploadService;
 
     @Transactional
     public UserRaceResponse register(Long userIdx, UserRaceRegisterRequest request) {
@@ -57,6 +60,21 @@ public class UserRaceService {
     public List<UserRaceResponse> getMyRaces(Long userIdx) {
         return userRaceRepository.findByUserUserIdxAndDelAtOrderByCreateDtDesc(userIdx, "N")
                 .stream().map(UserRaceResponse::new).toList();
+    }
+
+    @Transactional
+    public UserRaceResponse uploadRecordImage(Long userIdx, Long userRaceIdx, MultipartFile file) {
+        UserRace userRace = userRaceRepository.findById(userRaceIdx)
+                .orElseThrow(() -> new IllegalArgumentException("등록 내역이 없습니다."));
+        if (!userRace.getUser().getUserIdx().equals(userIdx)) {
+            throw new IllegalArgumentException("본인의 대회만 수정할 수 있습니다.");
+        }
+        if ("Y".equals(userRace.getDelAt())) {
+            throw new IllegalArgumentException("취소된 대회는 수정할 수 없습니다.");
+        }
+        String imagePath = fileUploadService.uploadRecordImage(file, userIdx);
+        userRace.updateRecordImagePath(imagePath);
+        return new UserRaceResponse(userRace);
     }
 
     @Transactional

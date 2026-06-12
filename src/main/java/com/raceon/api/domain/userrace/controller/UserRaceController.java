@@ -8,6 +8,7 @@ import com.raceon.api.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -39,6 +40,15 @@ public class UserRaceController {
     public ApiResponse<List<UserRaceResponse>> getMyRaces(Authentication authentication) {
         Long userIdx = Long.parseLong(authentication.getName());
         return ApiResponse.ok(userRaceService.getMyRaces(userIdx));
+    }
+
+    @PostMapping("/{userRaceIdx}/record-image")
+    public ApiResponse<UserRaceResponse> uploadRecordImage(
+            Authentication authentication,
+            @PathVariable Long userRaceIdx,
+            @RequestParam("file") MultipartFile file) {
+        Long userIdx = Long.parseLong(authentication.getName());
+        return ApiResponse.ok(userRaceService.uploadRecordImage(userIdx, userRaceIdx, file));
     }
 
     @PatchMapping("/{userRaceIdx}/record")

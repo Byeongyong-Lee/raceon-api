@@ -51,6 +51,9 @@ public class UserRace {
     @Column(columnDefinition = "TEXT")
     private String memo;
 
+    @Column(name = "record_image_path", columnDefinition = "TEXT")
+    private String recordImagePath;
+
     @Column(name = "del_at", nullable = false, length = 1)
     @Builder.Default
     private String delAt = "N";
@@ -75,5 +78,9 @@ public class UserRace {
         this.ranking = request.getRanking();
         this.finishYn = request.getFinishYn();
         this.memo = request.getMemo();
+    }
+
+    public void updateRecordImagePath(String recordImagePath) {
+        this.recordImagePath = recordImagePath;
     }
 }
