@@ -2,6 +2,8 @@ package com.raceon.api.domain.auth.controller;
 
 import com.raceon.api.domain.auth.dto.LoginResponse;
 import com.raceon.api.domain.auth.dto.SocialLoginRequest;
+import com.raceon.api.domain.auth.dto.TokenRefreshRequest;
+import com.raceon.api.domain.auth.dto.TokenRefreshResponse;
 import com.raceon.api.domain.auth.service.AuthService;
 import com.raceon.api.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,5 +29,10 @@ public class AuthController {
     @PostMapping("/google")
     public ApiResponse<LoginResponse> googleLogin(@RequestBody SocialLoginRequest request) {
         return ApiResponse.ok(authService.googleLogin(request));
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<TokenRefreshResponse> refresh(@RequestBody TokenRefreshRequest request) {
+        return ApiResponse.ok(authService.refresh(request.getRefreshToken()));
     }
 }

@@ -14,21 +14,35 @@ import java.util.Date;
 @Component
 public class JwtProvider {
 
-    private final SecretKey secretKey;
-    private final long expiration;
+    private static final String TYPE_CLAIM = "type";
+    private static final String ACCESS  = "access";
+    private static final String REFRESH = "refresh";
 
-    private static final long MAX_EXPIRATION = 6 * 60 * 60 * 1000L; // 6시간
+    private final SecretKey secretKey;
+    private final long accessExpiration;
+    private final long refreshExpiration;
 
     public JwtProvider(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.expiration}") long expiration) {
-        this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        this.expiration = Math.min(expiration, MAX_EXPIRATION);
+            @Value("${jwt.access-expiration}") long accessExpiration,
+            @Value("${jwt.refresh-expiration}") long refreshExpiration) {
+        this.secretKey        = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        this.accessExpiration  = accessExpiration;
+        this.refreshExpiration = refreshExpiration;
     }
 
-    public String generateToken(Long userId) {
+    public String generateAccessToken(Long userId) {
+        return buildToken(userId, accessExpiration, ACCESS);
+    }
+
+    public String generateRefreshToken(Long userId) {
+        return buildToken(userId, refreshExpiration, REFRESH);
+    }
+
+    private String buildToken(Long userId, long expiration, String type) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim(TYPE_CLAIM, type)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey)
@@ -44,6 +58,22 @@ public class JwtProvider {
             getClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public boolean isAccessToken(String token) {
+        try {
+            return ACCESS.equals(getClaims(token).get(TYPE_CLAIM, String.class));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            return REFRESH.equals(getClaims(token).get(TYPE_CLAIM, String.class));
+        } catch (Exception e) {
             return false;
         }
     }

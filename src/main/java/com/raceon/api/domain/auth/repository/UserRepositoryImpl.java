@@ -23,8 +23,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         .where(
                                 kakaoIdEq(condition.getKakaoId()),
                                 naverIdEq(condition.getNaverId()),
-                                googleIdEq(condition.getGoogleId()),
-                                jwtTokenEq(condition.getJwtToken())
+                                googleIdEq(condition.getGoogleId())
                         )
                         .fetchOne()
         );
@@ -42,7 +41,4 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         return googleId != null ? user.googleId.eq(googleId) : null;
     }
 
-    private BooleanExpression jwtTokenEq(String jwtToken) {
-        return jwtToken != null ? user.jwtToken.eq(jwtToken) : null;
-    }
 }

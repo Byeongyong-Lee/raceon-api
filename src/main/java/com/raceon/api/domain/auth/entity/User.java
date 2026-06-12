@@ -47,8 +47,8 @@ public class User {
     @Column(length = 20)
     private String phone;
 
-    @Column(columnDefinition = "TEXT")
-    private String jwtToken;
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
+    private String refreshToken;
 
     @Column(columnDefinition = "TEXT")
     private String fcmToken;
@@ -65,8 +65,8 @@ public class User {
     @Column(name = "update_dt", nullable = false)
     private LocalDateTime updateDt;
 
-    public void updateJwtToken(String jwtToken) {
-        this.jwtToken = jwtToken;
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public void updateFcmToken(String fcmToken) {

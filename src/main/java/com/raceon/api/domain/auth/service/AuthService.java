@@ -2,11 +2,13 @@ package com.raceon.api.domain.auth.service;
 
 import com.raceon.api.domain.auth.dto.LoginResponse;
 import com.raceon.api.domain.auth.dto.SocialLoginRequest;
+import com.raceon.api.domain.auth.dto.TokenRefreshResponse;
 import com.raceon.api.domain.auth.entity.User;
 import com.raceon.api.domain.auth.repository.UserRepository;
 import com.raceon.api.domain.auth.repository.UserSearchCondition;
 import com.raceon.api.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -36,7 +38,7 @@ public class AuthService implements UserDetailsService {
                         .birthday(request.getBirthday())
                         .phone(request.getPhone())
                         .build()));
-        return issueToken(user);
+        return issueTokens(user);
     }
 
     @Transactional
@@ -52,7 +54,7 @@ public class AuthService implements UserDetailsService {
                         .birthday(parseNaverBirthday(request.getBirthday()))
                         .phone(request.getPhone())
                         .build()));
-        return issueToken(user);
+        return issueTokens(user);
     }
 
     @Transactional
@@ -64,16 +66,33 @@ public class AuthService implements UserDetailsService {
                         .nickname(request.getNickname())
                         .profileImage(request.getProfileImage())
                         .build()));
-        return issueToken(user);
+        return issueTokens(user);
     }
 
-    private LoginResponse issueToken(User user) {
-        String token = jwtProvider.generateToken(user.getUserIdx());
-        user.updateJwtToken(token);
-        return new LoginResponse(token, user);
+    @Transactional
+    public TokenRefreshResponse refresh(String refreshToken) {
+        if (!jwtProvider.validateToken(refreshToken) || !jwtProvider.isRefreshToken(refreshToken)) {
+            throw new BadCredentialsException("유효하지 않은 리프레시 토큰입니다.");
+        }
+
+        Long userIdx = jwtProvider.getUserId(refreshToken);
+        User user = userRepository.findById(userIdx)
+                .orElseThrow(() -> new BadCredentialsException("존재하지 않는 유저입니다."));
+
+        if (!refreshToken.equals(user.getRefreshToken())) {
+            throw new BadCredentialsException("리프레시 토큰이 일치하지 않습니다.");
+        }
+
+        return new TokenRefreshResponse(jwtProvider.generateAccessToken(userIdx));
     }
 
-    // 네이버 SDK는 birthday를 "MM-DD" 형식으로 전달 → "MMDD"로 변환
+    private LoginResponse issueTokens(User user) {
+        String accessToken  = jwtProvider.generateAccessToken(user.getUserIdx());
+        String refreshToken = jwtProvider.generateRefreshToken(user.getUserIdx());
+        user.updateRefreshToken(refreshToken);
+        return new LoginResponse(accessToken, refreshToken, user);
+    }
+
     private String parseNaverBirthday(String birthday) {
         if (birthday == null) return null;
         return birthday.replace("-", "");
