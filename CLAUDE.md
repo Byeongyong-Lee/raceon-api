@@ -41,7 +41,10 @@ com.raceon.api
 ├── domain/
 │   ├── auth/
 │   │   ├── controller/AuthController.java
-│   │   ├── dto/SocialLoginRequest, LoginResponse
+│   │   ├── dto/SocialLoginRequest.java
+│   │   ├── dto/LoginResponse.java                  # accessToken + refreshToken 반환
+│   │   ├── dto/TokenRefreshRequest.java
+│   │   ├── dto/TokenRefreshResponse.java
 │   │   ├── entity/User.java
 │   │   ├── repository/UserRepository.java
 │   │   ├── repository/UserRepositoryCustom.java    # QueryDSL 커스텀 인터페이스
@@ -60,9 +63,9 @@ com.raceon.api
 │   │   ├── service/RaceService.java                # 조회 로직
 │   │   └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
 │   ├── user/
-│   │   ├── controller/UserController.java          # GET /api/users/me (JWT 토큰으로 조회)
+│   │   ├── controller/UserController.java          # GET /api/users/me
 │   │   ├── dto/UserResponse.java
-│   │   └── service/UserService.java                # jwt_token으로 유저 조회
+│   │   └── service/UserService.java                # userIdx로 유저 조회
 │   └── userrace/
 │       ├── controller/UserRaceController.java      # POST/DELETE/GET/PATCH /api/user-races
 │       ├── dto/UserRaceRegisterRequest.java
@@ -113,12 +116,24 @@ com.raceon.api
 
 1. React Native → 소셜 SDK로 사용자 정보 직접 획득
 2. `POST /api/auth/{kakao|naver|google}` + `{ "socialId": "...", "nickname": "...", "profileImage": "...", "gender": "...", "age": "...", "birthday": "...", "phone": "..." }`
-3. 서버 → socialId로 DB 조회 → 없으면 신규 저장, 있으면 조회 → JWT 발급
-4. 이후 요청: `Authorization: Bearer <token>` 헤더 필수
+3. 서버 → socialId로 DB 조회 → 없으면 신규 저장, 있으면 조회 → Access Token + Refresh Token 발급
+4. 이후 요청: `Authorization: Bearer <accessToken>` 헤더 필수
+5. Access Token 만료 시: `POST /api/auth/refresh` + `{ "refreshToken": "..." }` → 새 Access Token 발급
 
 서버에서 소셜 API를 직접 호출하지 않음. 클라이언트가 소셜 SDK로 사용자 정보를 수집해 전달.
 
 `/api/auth/**`, `/api/races` 인증 불필요. 나머지 전체 인증 필요. JWT subject = `userIdx`.
+
+### 토큰 구조
+
+| 토큰 | 만료 | 저장 위치 | 용도 |
+|------|------|-----------|------|
+| Access Token | 1시간 | 클라이언트 메모리 | API 인증 (`Authorization` 헤더) |
+| Refresh Token | 7일 | 클라이언트 + DB (`users.refresh_token`) | Access Token 재발급 |
+
+- 토큰에 `type` 클레임 포함 — Refresh Token을 Access Token으로 사용 불가
+- Refresh Token은 DB 저장값과 일치해야 재발급 허용 (탈취 방지)
+- 재로그인 시 Refresh Token 갱신 → 기존 Refresh Token 무효화
 
 ## 마라톤 대회 크롤링
 
@@ -162,7 +177,7 @@ com.raceon.api
 | age | age | VARCHAR(10) |
 | birthday | birthday | VARCHAR(4), MMDD |
 | phone | phone | VARCHAR(20) |
-| jwt_token | jwtToken | TEXT, 로그인 시 발급된 JWT 저장 (재로그인 시 갱신) |
+| refresh_token | refreshToken | TEXT, Refresh Token 저장 (`@Column(name="refresh_token")`) |
 | fcm_token | fcmToken | TEXT, 푸시 알림용 |
 | role | role | VARCHAR(10), 기본값 USER |
 | create_dt | createDt | TIMESTAMP NOT NULL DEFAULT NOW() |
@@ -251,7 +266,7 @@ private BooleanExpression delAtEq(String delAt) {
 
 - **서버 포트**: `18300`
 - **DB**: Oracle Cloud VM PostgreSQL `168.107.51.69:5432/raceon`
-- **JWT**: `jwt.secret` (Base64), `jwt.expiration` (ms, 기본 86400000 = 24h)
+- **JWT**: `jwt.secret` (Base64), `jwt.access-expiration: 3600000` (1시간), `jwt.refresh-expiration: 604800000` (7일)
 - **멀티파트**: `max-file-size: 10MB`, `max-request-size: 10MB`
 - **업로드 경로**: `upload.base-path: ./upload`
 - `jpa.hibernate.ddl-auto: update` — 개발용, 운영 시 `validate` 또는 `none` 권장
