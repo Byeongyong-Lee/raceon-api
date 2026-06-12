@@ -17,11 +17,13 @@ public class JwtProvider {
     private final SecretKey secretKey;
     private final long expiration;
 
+    private static final long MAX_EXPIRATION = 6 * 60 * 60 * 1000L; // 6시간
+
     public JwtProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration) {
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        this.expiration = expiration;
+        this.expiration = Math.min(expiration, MAX_EXPIRATION);
     }
 
     public String generateToken(Long userId) {
