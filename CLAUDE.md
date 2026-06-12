@@ -44,6 +44,9 @@ com.raceon.api
 │   │   ├── dto/SocialLoginRequest, LoginResponse
 │   │   ├── entity/User.java
 │   │   ├── repository/UserRepository.java
+│   │   ├── repository/UserRepositoryCustom.java    # QueryDSL 커스텀 인터페이스
+│   │   ├── repository/UserRepositoryImpl.java      # QueryDSL 구현체
+│   │   ├── repository/UserSearchCondition.java     # 검색 조건 DTO
 │   │   └── service/AuthService.java              # UserDetailsService 구현
 │   ├── race/
 │   │   ├── controller/RaceController.java          # GET /api/races
@@ -51,6 +54,9 @@ com.raceon.api
 │   │   ├── dto/RaceResponse.java
 │   │   ├── entity/Race.java
 │   │   ├── repository/RaceRepository.java
+│   │   ├── repository/RaceRepositoryCustom.java    # QueryDSL 커스텀 인터페이스
+│   │   ├── repository/RaceRepositoryImpl.java      # QueryDSL 구현체
+│   │   ├── repository/RaceSearchCondition.java     # 검색 조건 DTO
 │   │   ├── service/RaceService.java                # 조회 로직
 │   │   └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
 │   ├── user/
@@ -205,7 +211,7 @@ com.raceon.api
 - `XxxRepositoryCustom` — 커스텀 메서드 인터페이스
 - `XxxRepositoryImpl` — QueryDSL 구현체 (`JPAQueryFactory` 주입)
 - `XxxSearchCondition` — 검색 조건 DTO (`@Builder`)
-- `XxxRepository` — `JpaRepository<X, ID>` + `XxxRepositoryCustom` 동시 상속
+- `XxxRepository` — `JpaRepository<X, ID>` + `XxxRepositoryCustom` 동시 상속 (메서드 선언 없는 빈 인터페이스지만 Spring Data JPA 주입 진입점으로 필수)
 
 ### 사용 예시
 
