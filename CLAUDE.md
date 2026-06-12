@@ -124,6 +124,43 @@ com.raceon.api
 
 `/api/auth/**`, `/api/races` 인증 불필요. 나머지 전체 인증 필요. JWT subject = `userIdx`.
 
+### 인증 API
+
+| Method | URL | 인증 | 설명 |
+|--------|-----|------|------|
+| POST | `/api/auth/kakao` | 불필요 | 카카오 로그인 |
+| POST | `/api/auth/naver` | 불필요 | 네이버 로그인 |
+| POST | `/api/auth/google` | 불필요 | 구글 로그인 |
+| POST | `/api/auth/refresh` | 불필요 | Access Token 재발급 |
+
+로그인 응답 (`LoginResponse`):
+```json
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "userId": 1,
+  "nickname": "홍길동",
+  "profileImage": "https://...",
+  "role": "USER"
+}
+```
+
+토큰 갱신 요청/응답:
+```json
+// POST /api/auth/refresh 요청
+{ "refreshToken": "eyJ..." }
+
+// 응답
+{ "accessToken": "eyJ..." }
+```
+
+### 클라이언트 토큰 처리 흐름
+
+1. 로그인 시 `accessToken`, `refreshToken` 모두 저장
+2. API 호출 시 `Authorization: Bearer <accessToken>` 헤더 사용
+3. 401 응답 수신 → `POST /api/auth/refresh`로 `accessToken` 재발급
+4. 재발급도 실패(401) → 로그인 화면으로 이동
+
 ### 토큰 구조
 
 | 토큰 | 만료 | 저장 위치 | 용도 |
