@@ -51,10 +51,18 @@ com.raceon.api
 │   │   ├── repository/RaceRepository.java
 │   │   ├── service/RaceService.java                # 조회 로직
 │   │   └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
-│   └── user/
-│       ├── controller/UserController.java          # GET /api/users/me (JWT 토큰으로 조회)
-│       ├── dto/UserResponse.java
-│       └── service/UserService.java                # jwt_token으로 유저 조회
+│   ├── user/
+│   │   ├── controller/UserController.java          # GET /api/users/me (JWT 토큰으로 조회)
+│   │   ├── dto/UserResponse.java
+│   │   └── service/UserService.java                # jwt_token으로 유저 조회
+│   └── userrace/
+│       ├── controller/UserRaceController.java      # POST/DELETE/GET/PATCH /api/user-races
+│       ├── dto/UserRaceRegisterRequest.java
+│       ├── dto/UserRaceRecordUpdateRequest.java
+│       ├── dto/UserRaceResponse.java
+│       ├── entity/UserRace.java
+│       ├── repository/UserRaceRepository.java
+│       └── service/UserRaceService.java
 ├── global/
 │   ├── config/
 │   │   ├── SecurityConfig.java
@@ -145,6 +153,37 @@ com.raceon.api
 | role | role | VARCHAR(10), 기본값 USER |
 | create_dt | createDt | TIMESTAMP NOT NULL DEFAULT NOW() |
 | update_dt | updateDt | TIMESTAMP NOT NULL DEFAULT NOW() |
+
+## user_race 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| user_race_idx | userRaceIdx | BIGSERIAL PK (`@Column(name="user_race_idx")`) |
+| user_idx | user | BIGINT FK → users(user_idx), `@ManyToOne` |
+| race_idx | race | BIGINT FK → race(race_idx), `@ManyToOne` |
+| course | course | VARCHAR(20), 참가 코스 (풀/하프/10km 등) |
+| bib_number | bibNumber | VARCHAR(20), 배번호 (`@Column(name="bib_number")`) |
+| record_time | recordTime | VARCHAR(10), 완주 기록 HH:MM:SS (`@Column(name="record_time")`) |
+| pace | pace | VARCHAR(10), 평균 페이스 MM:SS/km |
+| ranking | ranking | INT, 순위 |
+| finish_yn | finishYn | VARCHAR(1), 완주 여부 Y/N (`@Column(name="finish_yn")`) |
+| memo | memo | TEXT, 한줄 소감 |
+| del_at | delAt | VARCHAR(1) NOT NULL DEFAULT 'N', 취소 시 Y (`@Column(name="del_at")`) |
+| create_dt | createDt | TIMESTAMP NOT NULL DEFAULT NOW() |
+| update_dt | updateDt | TIMESTAMP NOT NULL DEFAULT NOW() |
+
+### user_race API
+
+| Method | URL | 인증 | 설명 |
+|--------|-----|------|------|
+| POST | `/api/user-races` | 필요 | 대회 등록 |
+| DELETE | `/api/user-races/{userRaceIdx}` | 필요 | 대회 취소 (del_at='Y') |
+| GET | `/api/user-races/me` | 필요 | 내 등록 대회 목록 (del_at='N') |
+| PATCH | `/api/user-races/{userRaceIdx}/record` | 필요 | 기록 업데이트 |
+
+- 동일 대회 중복 등록 방지: `del_at='N'`인 레코드 존재 시 400
+- 취소는 soft delete — 히스토리 유지, 재등록 시 새 row 삽입
+- `Authentication.getName()`으로 JWT subject(`userIdx`) 추출
 
 ## 설정 (`src/main/resources/application.yaml`)
 
