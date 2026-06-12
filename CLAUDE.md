@@ -30,6 +30,7 @@ React Native 앱의 백엔드 API 서버. 다음 역할을 담당:
 - **보안**: Spring Security 7 (Stateless) + JWT (`jjwt` 0.12.6)
 - **소셜 로그인**: 카카오 / 네이버 / 구글 (RestClient로 각 API 호출)
 - **크롤링**: Jsoup 1.18.3 (EUC-KR 디코딩), `@Scheduled` 매일 오전 3시
+- **이미지 처리**: Thumbnailator 0.4.20 (리사이즈)
 - **Lombok**, **DevTools**
 
 ## 패키지 구조
@@ -67,11 +68,13 @@ com.raceon.api
 │   ├── config/
 │   │   ├── SecurityConfig.java
 │   │   ├── SchedulerConfig.java                  # @EnableScheduling
+│   │   ├── WebMvcConfig.java                     # /upload/** 정적 파일 서빙
 │   │   ├── JwtAuthenticationEntryPoint.java
 │   │   └── JwtAccessDeniedHandler.java
 │   ├── exception/GlobalExceptionHandler.java
 │   ├── jwt/JwtProvider.java, JwtAuthenticationFilter.java
-│   └── response/ApiResponse.java
+│   ├── response/ApiResponse.java
+│   └── upload/FileUploadService.java             # 이미지 업로드 + 리사이즈
 └── ApiApplication.java
 ```
 
@@ -168,6 +171,7 @@ com.raceon.api
 | ranking | ranking | INT, 순위 |
 | finish_yn | finishYn | VARCHAR(1), 완주 여부 Y/N (`@Column(name="finish_yn")`) |
 | memo | memo | TEXT, 한줄 소감 |
+| record_image_path | recordImagePath | TEXT, 기록증 이미지 경로 (`@Column(name="record_image_path")`) |
 | del_at | delAt | VARCHAR(1) NOT NULL DEFAULT 'N', 취소 시 Y (`@Column(name="del_at")`) |
 | create_dt | createDt | TIMESTAMP NOT NULL DEFAULT NOW() |
 | update_dt | updateDt | TIMESTAMP NOT NULL DEFAULT NOW() |
@@ -180,16 +184,30 @@ com.raceon.api
 | DELETE | `/api/user-races/{userRaceIdx}` | 필요 | 대회 취소 (del_at='Y') |
 | GET | `/api/user-races/me` | 필요 | 내 등록 대회 목록 (del_at='N') |
 | PATCH | `/api/user-races/{userRaceIdx}/record` | 필요 | 기록 업데이트 |
+| POST | `/api/user-races/{userRaceIdx}/record-image` | 필요 | 기록증 이미지 업로드 |
+| GET | `/upload/recode/{userIdx}/{filename}` | 불필요 | 이미지 파일 서빙 |
 
 - 동일 대회 중복 등록 방지: `del_at='N'`인 레코드 존재 시 400
 - 취소는 soft delete — 히스토리 유지, 재등록 시 새 row 삽입
 - `Authentication.getName()`으로 JWT subject(`userIdx`) 추출
+
+## 파일 업로드
+
+- **업로드 API**: `POST /api/user-races/{userRaceIdx}/record-image` (multipart/form-data, 파라미터명 `file`)
+- **허용 형식**: jpg, png, webp / 최대 20MB
+- **리사이즈**: 최대 1080×1920 (모바일 FHD 기준), 비율 유지, 품질 0.8
+- **저장 경로**: `{upload.base-path}/recode/{userIdx}/{uuid}.확장자`
+- **서빙 URL**: `/upload/recode/{userIdx}/{filename}` (인증 불필요)
+- **설정**: `application.yaml`의 `upload.base-path` (기본 `./upload`, 운영 시 절대경로 권장)
+- `FileUploadService` — 업로드·리사이즈 담당, `WebMvcConfig` — `/upload/**` 정적 리소스 핸들러 등록
 
 ## 설정 (`src/main/resources/application.yaml`)
 
 - **서버 포트**: `18300`
 - **DB**: Oracle Cloud VM PostgreSQL `168.107.51.69:5432/raceon`
 - **JWT**: `jwt.secret` (Base64), `jwt.expiration` (ms, 기본 86400000 = 24h)
+- **멀티파트**: `max-file-size: 20MB`, `max-request-size: 20MB`
+- **업로드 경로**: `upload.base-path: ./upload`
 - `jpa.hibernate.ddl-auto: update` — 개발용, 운영 시 `validate` 또는 `none` 권장
 - **주의**: 운영 배포 시 DB 자격증명·JWT secret 환경변수로 분리 필요
 
