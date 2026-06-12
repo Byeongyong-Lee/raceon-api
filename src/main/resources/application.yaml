@@ -34,7 +34,7 @@ spring:
 jwt:
   secret: cmFjZW9uLWp3dC1zZWNyZXQta2V5LWZvci1zZWN1cmUtYXV0aC10b2tlbi0yMDI1
   access-expiration: 3600000     # 1시간
-  refresh-expiration: 86400000   # 1일
+  refresh-expiration: 604800000  # 7일
 
 upload:
   base-path: ./upload
