@@ -2,6 +2,7 @@ package com.raceon.api.domain.race.service;
 
 import com.raceon.api.domain.race.entity.Race;
 import com.raceon.api.domain.race.repository.RaceRepository;
+import com.raceon.api.domain.race.repository.RaceSearchCondition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -86,7 +87,8 @@ public class RaceCrawlerService {
 
             LocalDate raceDate = parseDate(dateText, year);
 
-            raceRepository.findBySourceId(sourceId).ifPresentOrElse(
+            raceRepository.findOne(RaceSearchCondition.builder()
+                    .sourceId(sourceId).build()).ifPresentOrElse(
                     existing -> {
                         existing.update(name, raceDate, location, course, organizer, phone, homepage);
                         raceRepository.save(existing);

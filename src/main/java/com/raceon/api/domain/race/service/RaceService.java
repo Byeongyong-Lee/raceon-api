@@ -2,6 +2,7 @@ package com.raceon.api.domain.race.service;
 
 import com.raceon.api.domain.race.dto.RaceResponse;
 import com.raceon.api.domain.race.repository.RaceRepository;
+import com.raceon.api.domain.race.repository.RaceSearchCondition;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,7 @@ public class RaceService {
 
     public List<RaceResponse> getRaces(String yyyymm) {
         if (yyyymm == null || yyyymm.isBlank()) {
-            return raceRepository.findAllByOrderByRaceDateAsc()
+            return raceRepository.search(RaceSearchCondition.builder().build())
                     .stream().map(RaceResponse::new).toList();
         }
         if (!yyyymm.matches("\\d{6}")) {
@@ -28,7 +29,10 @@ public class RaceService {
         int month = Integer.parseInt(yyyymm.substring(4, 6));
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-        return raceRepository.findByRaceDateBetweenOrderByRaceDateAsc(start, end)
+        return raceRepository.search(RaceSearchCondition.builder()
+                        .raceDateFrom(start)
+                        .raceDateTo(end)
+                        .build())
                 .stream().map(RaceResponse::new).toList();
     }
 }

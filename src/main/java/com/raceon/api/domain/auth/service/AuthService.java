@@ -4,6 +4,7 @@ import com.raceon.api.domain.auth.dto.LoginResponse;
 import com.raceon.api.domain.auth.dto.SocialLoginRequest;
 import com.raceon.api.domain.auth.entity.User;
 import com.raceon.api.domain.auth.repository.UserRepository;
+import com.raceon.api.domain.auth.repository.UserSearchCondition;
 import com.raceon.api.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -25,7 +26,8 @@ public class AuthService implements UserDetailsService {
 
     @Transactional
     public LoginResponse kakaoLogin(SocialLoginRequest request) {
-        User user = userRepository.findByKakaoId(request.getSocialId())
+        User user = userRepository.findOne(UserSearchCondition.builder()
+                        .kakaoId(request.getSocialId()).build())
                 .orElseGet(() -> userRepository.save(User.builder()
                         .kakaoId(request.getSocialId())
                         .nickname(request.getNickname())
@@ -39,7 +41,8 @@ public class AuthService implements UserDetailsService {
 
     @Transactional
     public LoginResponse naverLogin(SocialLoginRequest request) {
-        User user = userRepository.findByNaverId(request.getSocialId())
+        User user = userRepository.findOne(UserSearchCondition.builder()
+                        .naverId(request.getSocialId()).build())
                 .orElseGet(() -> userRepository.save(User.builder()
                         .naverId(request.getSocialId())
                         .nickname(request.getNickname())
@@ -54,7 +57,8 @@ public class AuthService implements UserDetailsService {
 
     @Transactional
     public LoginResponse googleLogin(SocialLoginRequest request) {
-        User user = userRepository.findByGoogleId(request.getSocialId())
+        User user = userRepository.findOne(UserSearchCondition.builder()
+                        .googleId(request.getSocialId()).build())
                 .orElseGet(() -> userRepository.save(User.builder()
                         .googleId(request.getSocialId())
                         .nickname(request.getNickname())

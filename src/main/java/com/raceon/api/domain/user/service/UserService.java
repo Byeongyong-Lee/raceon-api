@@ -2,6 +2,7 @@ package com.raceon.api.domain.user.service;
 
 import com.raceon.api.domain.auth.entity.User;
 import com.raceon.api.domain.auth.repository.UserRepository;
+import com.raceon.api.domain.auth.repository.UserSearchCondition;
 import com.raceon.api.domain.user.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,7 +17,8 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserResponse getMe(String jwtToken) {
-        User user = userRepository.findByJwtToken(jwtToken)
+        User user = userRepository.findOne(UserSearchCondition.builder()
+                        .jwtToken(jwtToken).build())
                 .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 유저입니다."));
         return new UserResponse(user);
     }
