@@ -31,6 +31,7 @@ React Native 앱의 백엔드 API 서버. 다음 역할을 담당:
 - **소셜 로그인**: 카카오 / 네이버 / 구글 (RestClient로 각 API 호출)
 - **크롤링**: Jsoup 1.18.3 (EUC-KR 디코딩), `@Scheduled` 매일 오전 3시
 - **이미지 처리**: Thumbnailator 0.4.20 (리사이즈)
+- **동적 쿼리**: QueryDSL 5.1.0 (jakarta)
 - **Lombok**, **DevTools**
 
 ## 패키지 구조
@@ -63,12 +64,16 @@ com.raceon.api
 │       ├── dto/UserRaceResponse.java
 │       ├── entity/UserRace.java
 │       ├── repository/UserRaceRepository.java
+│       ├── repository/UserRaceRepositoryCustom.java  # QueryDSL 커스텀 인터페이스
+│       ├── repository/UserRaceRepositoryImpl.java    # QueryDSL 구현체
+│       ├── repository/UserRaceSearchCondition.java   # 검색 조건 DTO
 │       └── service/UserRaceService.java
 ├── global/
 │   ├── config/
 │   │   ├── SecurityConfig.java
 │   │   ├── SchedulerConfig.java                  # @EnableScheduling
 │   │   ├── WebMvcConfig.java                     # /upload/** 정적 파일 서빙
+│   │   ├── QuerydslConfig.java                   # JPAQueryFactory 빈 등록
 │   │   ├── JwtAuthenticationEntryPoint.java
 │   │   └── JwtAccessDeniedHandler.java
 │   ├── exception/GlobalExceptionHandler.java
@@ -190,6 +195,38 @@ com.raceon.api
 - 동일 대회 중복 등록 방지: `del_at='N'`인 레코드 존재 시 400
 - 취소는 soft delete — 히스토리 유지, 재등록 시 새 row 삽입
 - `Authentication.getName()`으로 JWT subject(`userIdx`) 추출
+
+## QueryDSL
+
+복잡한 동적 쿼리는 QueryDSL을 사용. 조건 DTO를 넘기면 `null` 필드는 WHERE절에서 자동 제외.
+
+### 구조 패턴
+
+- `XxxRepositoryCustom` — 커스텀 메서드 인터페이스
+- `XxxRepositoryImpl` — QueryDSL 구현체 (`JPAQueryFactory` 주입)
+- `XxxSearchCondition` — 검색 조건 DTO (`@Builder`)
+- `XxxRepository` — `JpaRepository<X, ID>` + `XxxRepositoryCustom` 동시 상속
+
+### 사용 예시
+
+```java
+// 서비스에서 조건 DTO 빌드해서 넘김
+repository.search(XxxSearchCondition.builder()
+        .userIdx(userIdx)
+        .delAt("N")
+        .build());
+
+// Impl 내부 — null이면 해당 조건 무시
+private BooleanExpression delAtEq(String delAt) {
+    return delAt != null ? entity.delAt.eq(delAt) : null;
+}
+```
+
+### Q클래스 생성
+
+`./gradlew compileJava` 실행 시 APT가 자동 생성 → `build/generated/sources/annotationProcessor/java/main/`
+
+새 엔티티 추가 시 `compileJava` 재실행 필요.
 
 ## 파일 업로드
 
