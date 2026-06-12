@@ -16,6 +16,9 @@ public class FileUploadService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp"
     );
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            "jpg", "jpeg", "png", "webp"
+    );
     private static final int MAX_WIDTH = 1080;
     private static final int MAX_HEIGHT = 1920;
     private static final double OUTPUT_QUALITY = 0.8;
@@ -56,6 +59,10 @@ public class FileUploadService {
     private void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("파일이 비어있습니다.");
+        }
+        String extension = extractExtension(file.getOriginalFilename());
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("지원하지 않는 확장자입니다. (jpg, jpeg, png, webp만 허용)");
         }
         if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, png, webp만 허용)");
