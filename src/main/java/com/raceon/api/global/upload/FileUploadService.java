@@ -16,7 +16,7 @@ public class FileUploadService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp"
     );
-    private static final int MAX_WIDTH = 1920;
+    private static final int MAX_WIDTH = 1080;
     private static final int MAX_HEIGHT = 1920;
     private static final double OUTPUT_QUALITY = 0.8;
 
