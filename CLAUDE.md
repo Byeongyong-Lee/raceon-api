@@ -307,6 +307,7 @@ private BooleanExpression delAtEq(String delAt) {
 - **멀티파트**: `max-file-size: 10MB`, `max-request-size: 10MB`
 - **업로드 경로**: `upload.base-path: ./upload`
 - `jpa.hibernate.ddl-auto: update` — 개발용, 운영 시 `validate` 또는 `none` 권장
+- **SQL 로그**: `show-sql` 비활성화 — `log4j2-spring.xml`의 `org.hibernate.SQL` (DEBUG) 단일 출력, `format_sql: true`로 포맷팅
 - **주의**: 운영 배포 시 DB 자격증명·JWT secret 환경변수로 분리 필요
 
 ## 주의사항
