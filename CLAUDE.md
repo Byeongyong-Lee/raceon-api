@@ -194,7 +194,7 @@ com.raceon.api
 ## 파일 업로드
 
 - **업로드 API**: `POST /api/user-races/{userRaceIdx}/record-image` (multipart/form-data, 파라미터명 `file`)
-- **허용 형식**: jpg, png, webp / 최대 20MB
+- **허용 형식**: jpg, jpeg, png, webp / 최대 10MB
 - **리사이즈**: 최대 1080×1920 (모바일 FHD 기준), 비율 유지, 품질 0.8
 - **저장 경로**: `{upload.base-path}/recode/{userIdx}/{uuid}.확장자`
 - **서빙 URL**: `/upload/recode/{userIdx}/{filename}` (인증 불필요)
@@ -206,7 +206,7 @@ com.raceon.api
 - **서버 포트**: `18300`
 - **DB**: Oracle Cloud VM PostgreSQL `168.107.51.69:5432/raceon`
 - **JWT**: `jwt.secret` (Base64), `jwt.expiration` (ms, 기본 86400000 = 24h)
-- **멀티파트**: `max-file-size: 20MB`, `max-request-size: 20MB`
+- **멀티파트**: `max-file-size: 10MB`, `max-request-size: 10MB`
 - **업로드 경로**: `upload.base-path: ./upload`
 - `jpa.hibernate.ddl-auto: update` — 개발용, 운영 시 `validate` 또는 `none` 권장
 - **주의**: 운영 배포 시 DB 자격증명·JWT secret 환경변수로 분리 필요
