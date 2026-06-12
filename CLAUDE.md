@@ -238,7 +238,10 @@ private BooleanExpression delAtEq(String delAt) {
 
 - **업로드 API**: `POST /api/user-races/{userRaceIdx}/record-image` (multipart/form-data, 파라미터명 `file`)
 - **허용 형식**: jpg, jpeg, png, webp / 최대 10MB
-- **리사이즈**: 최대 1080×1920 (모바일 FHD 기준), 비율 유지, 품질 0.8
+- **리사이즈**: 최대 1080×1920 (모바일 FHD 기준), 비율 유지, **100KB 미만 보장**
+  - 1단계: 품질 0.8→0.1 순으로 감소 시도
+  - 2단계: 품질 0.1 고정 후 해상도를 0.9배씩 축소
+  - webp는 Thumbnailator 출력 미지원 → jpeg로 변환 저장
 - **저장 경로**: `{upload.base-path}/recode/{userIdx}/{uuid}.확장자`
 - **서빙 URL**: `/upload/recode/{userIdx}/{filename}` (인증 불필요)
 - **설정**: `application.yaml`의 `upload.base-path` (기본 `./upload`, 운영 시 절대경로 권장)
