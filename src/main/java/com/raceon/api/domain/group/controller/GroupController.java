@@ -42,17 +42,27 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.ok(list));
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    /** 모임 생성 — JSON (이미지는 생성 후 /{groupIdx}/image 로 별도 업로드) */
+    @PostMapping
     public ResponseEntity<ApiResponse<GroupResponse>> create(
             Authentication auth,
-            @RequestPart("data") GroupCreateRequest request,
-            @RequestPart(value = "file", required = false) MultipartFile imageFile) {
+            @RequestBody GroupCreateRequest request) {
         Long userIdx = Long.parseLong(auth.getName());
-        Group group = groupService.create(userIdx, request.getName(), request.getDescription(), imageFile,
+        Group group = groupService.create(userIdx, request.getName(), request.getDescription(), null,
                 request.getGroupMembers(), request.getManagerMembers(), request.getAreaCode(),
                 request.getTag1(), request.getTag2(), request.getTag3(), request.getTag4(), request.getTag5());
-        // 생성 직후: OWNER, memberCount=1
         return ResponseEntity.ok(ApiResponse.ok(new GroupResponse(group, GroupRole.OWNER, 1)));
+    }
+
+    /** 모임 프로필 이미지 업로드 */
+    @PostMapping(value = "/{groupIdx}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Void>> uploadImage(
+            Authentication auth,
+            @PathVariable Long groupIdx,
+            @RequestPart("file") MultipartFile imageFile) {
+        Long userIdx = Long.parseLong(auth.getName());
+        groupService.updateProfileImage(userIdx, groupIdx, imageFile);
+        return ResponseEntity.ok(ApiResponse.ok());
     }
 
     @GetMapping("/me")
@@ -66,7 +76,7 @@ public class GroupController {
                         long count = groupService.getMemberCount(m.getGroupIdx());
                         return new GroupResponse(group, m.getRole(), count);
                     } catch (IllegalArgumentException e) {
-                        return null; // 삭제된 모임 스킵
+                        return null;
                     }
                 })
                 .filter(r -> r != null)
@@ -85,14 +95,13 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.ok(new GroupResponse(group, role, count)));
     }
 
-    @PatchMapping(value = "/{groupIdx}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping("/{groupIdx}")
     public ResponseEntity<ApiResponse<Void>> update(
             Authentication auth,
             @PathVariable Long groupIdx,
-            @RequestPart("data") GroupUpdateRequest request,
-            @RequestPart(value = "file", required = false) MultipartFile imageFile) {
+            @RequestBody GroupUpdateRequest request) {
         Long userIdx = Long.parseLong(auth.getName());
-        groupService.update(userIdx, groupIdx, request.getName(), request.getDescription(), imageFile,
+        groupService.update(userIdx, groupIdx, request.getName(), request.getDescription(),
                 request.getGroupMembers(), request.getManagerMembers(), request.getAreaCode(),
                 request.getTag1(), request.getTag2(), request.getTag3(), request.getTag4(), request.getTag5());
         return ResponseEntity.ok(ApiResponse.ok());

@@ -80,17 +80,20 @@ public class GroupService {
     }
 
     @Transactional
-    public void update(Long userIdx, Long groupIdx, String name, String description, MultipartFile imageFile,
+    public void updateProfileImage(Long userIdx, Long groupIdx, MultipartFile imageFile) {
+        Group group = getGroup(groupIdx);
+        validateOwner(groupIdx, userIdx);
+        Image image = fileUploadService.uploadGroupImage(imageFile, groupIdx);
+        group.updateProfileImage(image);
+    }
+
+    @Transactional
+    public void update(Long userIdx, Long groupIdx, String name, String description,
                        Integer groupMembers, Integer managerMembers, String areaCode,
                        String tag1, String tag2, String tag3, String tag4, String tag5) {
         Group group = getGroup(groupIdx);
         validateOwner(groupIdx, userIdx);
-
-        Image profileImage = null;
-        if (imageFile != null && !imageFile.isEmpty()) {
-            profileImage = fileUploadService.uploadGroupImage(imageFile, groupIdx);
-        }
-        group.update(name, description, profileImage, groupMembers, managerMembers, areaCode,
+        group.update(name, description, null, groupMembers, managerMembers, areaCode,
                 tag1, tag2, tag3, tag4, tag5);
     }
 
