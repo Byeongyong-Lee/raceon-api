@@ -32,6 +32,7 @@ React Native 앱의 백엔드 API 서버. 다음 역할을 담당:
 - **크롤링**: Jsoup 1.18.3 (EUC-KR 디코딩), `@Scheduled` 매일 오전 3시
 - **이미지 처리**: Thumbnailator 0.4.20 (리사이즈)
 - **동적 쿼리**: QueryDSL 5.1.0 (jakarta)
+- **실시간 통신**: Spring WebSocket + STOMP (채팅, 위치공유)
 - **Lombok**, **DevTools**
 
 ## 패키지 구조
@@ -72,17 +73,42 @@ com.raceon.api
 │   │   ├── controller/UserController.java          # GET /api/users/me
 │   │   ├── dto/UserResponse.java
 │   │   └── service/UserService.java                # userIdx로 유저 조회
-│   └── userrace/
-│       ├── controller/UserRaceController.java      # POST/DELETE/GET/PATCH /api/user-races
-│       ├── dto/UserRaceRegisterRequest.java
-│       ├── dto/UserRaceRecordUpdateRequest.java
-│       ├── dto/UserRaceResponse.java
-│       ├── entity/UserRace.java
-│       ├── repository/UserRaceRepository.java
-│       ├── repository/UserRaceRepositoryCustom.java  # QueryDSL 커스텀 인터페이스
-│       ├── repository/UserRaceRepositoryImpl.java    # QueryDSL 구현체
-│       ├── repository/UserRaceSearchCondition.java   # 검색 조건 DTO
-│       └── service/UserRaceService.java
+│   ├── userrace/
+│   │   ├── controller/UserRaceController.java      # POST/DELETE/GET/PATCH /api/user-races
+│   │   ├── dto/UserRaceRegisterRequest.java
+│   │   ├── dto/UserRaceRecordUpdateRequest.java
+│   │   ├── dto/UserRaceResponse.java
+│   │   ├── entity/UserRace.java
+│   │   ├── repository/UserRaceRepository.java
+│   │   ├── repository/UserRaceRepositoryCustom.java
+│   │   ├── repository/UserRaceRepositoryImpl.java
+│   │   ├── repository/UserRaceSearchCondition.java
+│   │   └── service/UserRaceService.java
+│   └── group/
+│       ├── controller/GroupController.java              # 모임 CRUD
+│       ├── controller/GroupMemberController.java        # 멤버 관리, 권한
+│       ├── controller/GroupJoinApplicationController.java # 가입 신청/승인
+│       ├── controller/GroupBoardController.java         # 게시판
+│       ├── controller/GroupChatController.java          # 채팅 이력 조회
+│       ├── controller/GroupRaceController.java          # 대회 연동
+│       ├── controller/GroupMeetupController.java        # 약속
+│       ├── dto/                                         # 요청/응답 DTO
+│       ├── entity/Group.java
+│       ├── entity/GroupMember.java
+│       ├── entity/GroupManagerPermission.java
+│       ├── entity/GroupJoinApplication.java
+│       ├── entity/GroupBoard.java
+│       ├── entity/GroupBoardComment.java
+│       ├── entity/GroupChat.java
+│       ├── entity/GroupRace.java
+│       ├── entity/GroupMeetup.java
+│       ├── entity/GroupMeetupParticipant.java
+│       ├── enums/GroupRole.java                         # OWNER, MANAGER, MEMBER
+│       ├── enums/ApplicationStatus.java                 # PENDING, APPROVED, REJECTED
+│       ├── enums/ChatMessageType.java                   # TEXT, IMAGE, SYSTEM
+│       ├── enums/MeetupStatus.java                      # ATTEND, ABSENT, PENDING
+│       ├── repository/                                  # JPA 리포지토리
+│       └── service/                                     # 비즈니스 로직
 ├── global/
 │   ├── config/
 │   │   ├── SecurityConfig.java
@@ -94,7 +120,13 @@ com.raceon.api
 │   ├── exception/GlobalExceptionHandler.java
 │   ├── jwt/JwtProvider.java, JwtAuthenticationFilter.java
 │   ├── response/ApiResponse.java
-│   └── upload/FileUploadService.java             # 이미지 업로드 + 리사이즈
+│   ├── upload/FileUploadService.java             # 이미지 업로드 + 리사이즈
+│   └── websocket/
+│       ├── WebSocketConfig.java                  # STOMP 브로커 설정
+│       ├── WebSocketAuthInterceptor.java          # CONNECT 시 JWT 인증
+│       ├── GroupWebSocketController.java          # 채팅·위치 메시지 핸들러
+│       ├── ChatMessage.java / ChatResponse.java
+│       └── LocationMessage.java / LocationBroadcast.java
 └── ApiApplication.java
 ```
 
@@ -349,6 +381,161 @@ private BooleanExpression delAtEq(String delAt) {
 - `jpa.hibernate.ddl-auto: update` — 개발용, 운영 시 `validate` 또는 `none` 권장
 - **SQL 로그**: `show-sql` 비활성화 — `log4j2-spring.xml`의 `org.hibernate.SQL` (DEBUG) 단일 출력, `format_sql: true`로 포맷팅
 - **주의**: 운영 배포 시 DB 자격증명·JWT secret 환경변수로 분리 필요
+
+## 모임(Group) 기능
+
+### 권한 체계
+
+```
+OWNER (모임장)
+  └─ MANAGER (운영진) — 모임장이 세부 권한 선택 부여
+       ├─ can_manage_board    : 게시판 관리 (공지 설정, 글/댓글 삭제)
+       ├─ can_manage_members  : 멤버 관리 (강퇴, 신청 승인/거절)
+       ├─ can_manage_race     : 대회 연동 관리
+       └─ can_manage_meetup   : 약속 생성/수정/삭제
+  └─ MEMBER (일반 멤버)
+```
+
+### 가입 흐름
+
+신청 → 모임장/운영진(can_manage_members) 승인 → group_member 자동 추가
+
+### groups 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| group_idx | groupIdx | BIGSERIAL PK |
+| name | name | VARCHAR(100) NOT NULL |
+| description | description | TEXT |
+| group_members | groupMembers | INTEGER, 그룹 인원 제한 (null = 무제한) |
+| manager_members | managerMembers | INTEGER, 운영진 인원 제한 |
+| area_code | areaCode | VARCHAR(20), 지역 코드 |
+| tag1 ~ tag5 | tag1 ~ tag5 | VARCHAR(50), 태그 (최대 5개) |
+| profile_image | profileImage | TEXT |
+| owner_idx | ownerIdx | BIGINT NOT NULL |
+| del_at | delAt | VARCHAR(1) DEFAULT 'N' |
+| create_dt / update_dt | | TIMESTAMP |
+
+### group_member 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| group_member_idx | groupMemberIdx | BIGSERIAL PK |
+| group_idx / user_idx | | BIGINT FK (UNIQUE) |
+| role | role | OWNER / MANAGER / MEMBER |
+| del_at | delAt | VARCHAR(1) DEFAULT 'N' |
+
+### group_manager_permission 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| permission_idx | permissionIdx | BIGSERIAL PK |
+| group_idx / user_idx | | BIGINT FK (UNIQUE) |
+| can_manage_board | canManageBoard | Y/N |
+| can_manage_members | canManageMembers | Y/N |
+| can_manage_race | canManageRace | Y/N |
+| can_manage_meetup | canManageMeetup | Y/N |
+
+### group_join_application 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| application_idx | applicationIdx | BIGSERIAL PK |
+| group_idx / user_idx | | BIGINT FK (UNIQUE) |
+| message | message | TEXT, 신청 메시지 |
+| status | status | PENDING / APPROVED / REJECTED |
+| processed_by | processedBy | BIGINT, 처리한 user_idx |
+
+### group_board / group_board_comment 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| board_idx | boardIdx | BIGSERIAL PK |
+| group_idx / author_idx | | BIGINT FK |
+| title / content | | VARCHAR(200) / TEXT |
+| is_notice | isNotice | Y/N, 공지 여부 |
+| del_at | delAt | Y/N |
+
+### group_chat 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| chat_idx | chatIdx | BIGSERIAL PK |
+| group_idx / sender_idx | | BIGINT FK |
+| message_type | messageType | TEXT / IMAGE / SYSTEM |
+| content | content | TEXT |
+| create_dt | createDt | TIMESTAMP |
+
+### group_race 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| group_race_idx | groupRaceIdx | BIGSERIAL PK |
+| group_idx / race_idx | | BIGINT FK (UNIQUE) |
+| linked_by | linkedBy | BIGINT, 연동한 user_idx |
+| location_share_start | locationShareStart | TIMESTAMP, 위치공유 시작 |
+| location_share_end | locationShareEnd | TIMESTAMP, 위치공유 종료 |
+
+### group_meetup / group_meetup_participant 테이블
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| meetup_idx | meetupIdx | BIGSERIAL PK |
+| group_idx / created_by | | BIGINT FK |
+| title / description | | VARCHAR(100) / TEXT |
+| meetup_dt | meetupDt | TIMESTAMP, 약속 일시 |
+| location | location | VARCHAR(200) |
+| del_at | delAt | Y/N |
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| participant_idx | participantIdx | BIGSERIAL PK |
+| meetup_idx / user_idx | | BIGINT FK (UNIQUE) |
+| status | status | ATTEND / ABSENT / PENDING |
+
+### 모임 API
+
+| Method | URL | 권한 | 설명 |
+|--------|-----|------|------|
+| POST | `/api/groups` | 인증 | 모임 생성 |
+| GET | `/api/groups/me` | 인증 | 내 모임 목록 |
+| GET | `/api/groups/{groupIdx}` | 멤버 | 모임 상세 |
+| PATCH | `/api/groups/{groupIdx}` | 모임장 | 모임 수정 |
+| DELETE | `/api/groups/{groupIdx}` | 모임장 | 모임 삭제 |
+| POST | `/api/groups/{groupIdx}/applications` | 인증 | 가입 신청 |
+| GET | `/api/groups/{groupIdx}/applications/me` | 인증 | 내 신청 상태 |
+| GET | `/api/groups/{groupIdx}/applications?status=` | 모임장/운영진 | 신청 목록 |
+| POST | `/api/groups/{groupIdx}/applications/{idx}/approve` | 모임장/운영진 | 승인 |
+| POST | `/api/groups/{groupIdx}/applications/{idx}/reject` | 모임장/운영진 | 거절 |
+| GET | `/api/groups/{groupIdx}/members` | 멤버 | 멤버 목록 |
+| DELETE | `/api/groups/{groupIdx}/members/me` | 멤버 | 탈퇴 |
+| DELETE | `/api/groups/{groupIdx}/members/{userIdx}` | 모임장/운영진 | 강퇴 |
+| PATCH | `/api/groups/{groupIdx}/members/{userIdx}/role` | 모임장 | 역할 변경 |
+| PUT | `/api/groups/{groupIdx}/members/{userIdx}/permissions` | 모임장 | 운영진 권한 설정 |
+| GET/POST/PATCH/DELETE | `/api/groups/{groupIdx}/boards/**` | 멤버/운영진 | 게시판 CRUD |
+| GET | `/api/groups/{groupIdx}/chat/messages` | 멤버 | 채팅 이력 (커서 페이징) |
+| GET/POST/DELETE | `/api/groups/{groupIdx}/races/**` | 멤버/운영진 | 대회 연동 |
+| PATCH | `/api/groups/{groupIdx}/races/{idx}/location-share` | 운영진 | 위치공유 시간 설정 |
+| GET/POST/PATCH/DELETE | `/api/groups/{groupIdx}/meetups/**` | 멤버/운영진 | 약속 관리 |
+| POST | `/api/groups/{groupIdx}/meetups/{idx}/respond` | 멤버 | 참가 여부 응답 |
+
+- 약속 생성: 오늘~+10일 이내만 가능, 지난 약속은 목록에서 자동 제외
+- 모임장은 탈퇴 불가 (모임 삭제로 대체)
+- `group_members` null이면 인원 제한 없음
+
+### WebSocket (STOMP)
+
+연결: `/ws` (SockJS), STOMP CONNECT 헤더 `Authorization: Bearer {accessToken}` 필수
+
+| 방향 | Destination | 설명 |
+|------|-------------|------|
+| 발행 | `/pub/groups/{groupIdx}/chat` | 채팅 전송 (`content`, `messageType`) |
+| 구독 | `/sub/groups/{groupIdx}/chat` | 채팅 수신 |
+| 발행 | `/pub/groups/{groupIdx}/location/{groupRaceIdx}` | 위치 전송 (`latitude`, `longitude`, `accuracy`, `timestamp`) |
+| 구독 | `/sub/groups/{groupIdx}/location/{groupRaceIdx}` | 위치 수신 (브로드캐스트) |
+
+- 위치공유는 `location_share_start ~ location_share_end` 범위 내에서만 브로드캐스트
+- 위치 데이터는 DB 저장 없이 실시간 브로드캐스트만 수행
 
 ## 주의사항
 
