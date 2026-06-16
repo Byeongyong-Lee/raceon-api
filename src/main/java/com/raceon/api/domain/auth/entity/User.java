@@ -77,4 +77,8 @@ public class User {
         this.nickname = nickname;
         this.profileImage = profileImage;
     }
+
+    public void updateProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
 }

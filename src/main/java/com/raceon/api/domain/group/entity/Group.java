@@ -1,5 +1,6 @@
 package com.raceon.api.domain.group.entity;
 
+import com.raceon.api.global.upload.Image;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -50,8 +51,9 @@ public class Group {
     @Column(name = "tag5", length = 50)
     private String tag5;
 
-    @Column(name = "profile_image", columnDefinition = "TEXT")
-    private String profileImage;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_image_idx")
+    private Image profileImage;
 
     @Column(name = "owner_idx", nullable = false)
     private Long ownerIdx;
@@ -68,7 +70,7 @@ public class Group {
     @Column(name = "update_dt", nullable = false)
     private LocalDateTime updateDt;
 
-    public void update(String name, String description, String profileImage,
+    public void update(String name, String description, Image profileImage,
                        Integer groupMembers, Integer managerMembers, String areaCode,
                        String tag1, String tag2, String tag3, String tag4, String tag5) {
         if (name != null) this.name = name;
@@ -82,6 +84,10 @@ public class Group {
         this.tag3 = tag3;
         this.tag4 = tag4;
         this.tag5 = tag5;
+    }
+
+    public void updateProfileImage(Image profileImage) {
+        this.profileImage = profileImage;
     }
 
     public void delete() {

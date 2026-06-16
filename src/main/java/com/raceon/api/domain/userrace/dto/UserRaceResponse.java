@@ -49,7 +49,7 @@ public class UserRaceResponse {
         this.ranking = userRace.getRanking();
         this.finishYn = userRace.getFinishYn();
         this.memo = userRace.getMemo();
-        this.recordImagePath = userRace.getRecordImagePath();
+        this.recordImagePath = userRace.getRecordImage() != null ? userRace.getRecordImage().getFilePath() : null;
         this.delAt = userRace.getDelAt();
         this.createDt = userRace.getCreateDt();
         this.updateDt = userRace.getUpdateDt();

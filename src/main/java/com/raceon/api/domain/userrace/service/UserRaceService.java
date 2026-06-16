@@ -11,6 +11,7 @@ import com.raceon.api.domain.userrace.entity.UserRace;
 import com.raceon.api.domain.userrace.repository.UserRaceRepository;
 import com.raceon.api.domain.userrace.repository.UserRaceSearchCondition;
 import com.raceon.api.global.upload.FileUploadService;
+import com.raceon.api.global.upload.Image;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,8 +81,8 @@ public class UserRaceService {
         if ("Y".equals(userRace.getDelAt())) {
             throw new IllegalArgumentException("취소된 대회는 수정할 수 없습니다.");
         }
-        String imagePath = fileUploadService.uploadRecordImage(file, userIdx);
-        userRace.updateRecordImagePath(imagePath);
+        Image image = fileUploadService.uploadRecordImage(file, userIdx);
+        userRace.updateRecordImage(image);
         return new UserRaceResponse(userRace);
     }
 

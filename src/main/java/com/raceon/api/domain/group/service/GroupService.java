@@ -5,9 +5,12 @@ import com.raceon.api.domain.group.entity.GroupMember;
 import com.raceon.api.domain.group.enums.GroupRole;
 import com.raceon.api.domain.group.repository.GroupMemberRepository;
 import com.raceon.api.domain.group.repository.GroupRepository;
+import com.raceon.api.global.upload.FileUploadService;
+import com.raceon.api.global.upload.Image;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,22 +21,27 @@ public class GroupService {
 
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final FileUploadService fileUploadService;
 
     @Transactional
-    public Group create(Long userIdx, String name, String description, String profileImage,
+    public Group create(Long userIdx, String name, String description, MultipartFile imageFile,
                         Integer groupMembers, Integer managerMembers, String areaCode,
                         String tag1, String tag2, String tag3, String tag4, String tag5) {
         Group group = Group.builder()
                 .ownerIdx(userIdx)
                 .name(name)
                 .description(description)
-                .profileImage(profileImage)
                 .groupMembers(groupMembers)
                 .managerMembers(managerMembers)
                 .areaCode(areaCode)
                 .tag1(tag1).tag2(tag2).tag3(tag3).tag4(tag4).tag5(tag5)
                 .build();
         groupRepository.save(group);
+
+        if (imageFile != null && !imageFile.isEmpty()) {
+            Image image = fileUploadService.uploadGroupImage(imageFile, group.getGroupIdx());
+            group.updateProfileImage(image);
+        }
 
         GroupMember owner = GroupMember.builder()
                 .groupIdx(group.getGroupIdx())
@@ -58,11 +66,16 @@ public class GroupService {
     }
 
     @Transactional
-    public void update(Long userIdx, Long groupIdx, String name, String description, String profileImage,
+    public void update(Long userIdx, Long groupIdx, String name, String description, MultipartFile imageFile,
                        Integer groupMembers, Integer managerMembers, String areaCode,
                        String tag1, String tag2, String tag3, String tag4, String tag5) {
         Group group = getGroup(groupIdx);
         validateOwner(groupIdx, userIdx);
+
+        Image profileImage = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            profileImage = fileUploadService.uploadGroupImage(imageFile, groupIdx);
+        }
         group.update(name, description, profileImage, groupMembers, managerMembers, areaCode,
                 tag1, tag2, tag3, tag4, tag5);
     }
@@ -95,5 +108,4 @@ public class GroupService {
             throw new IllegalArgumentException("모임장 또는 운영진만 가능한 작업입니다.");
         }
     }
-
 }

@@ -1,8 +1,10 @@
 package com.raceon.api.global.upload;
 
+import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -14,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class FileUploadService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
@@ -29,34 +32,76 @@ public class FileUploadService {
     @Value("${upload.base-path}")
     private String basePath;
 
+    private final ImageRepository imageRepository;
+
     /**
-     * 기록증 이미지 업로드 + 리사이즈 (100KB 미만 보장)
-     * @return URL 경로 (e.g. /upload/recode/1/uuid.jpg)
+     * 공통 이미지 업로드 + 리사이즈 (100KB 미만 보장) + DB 저장
+     *
+     * @param file       업로드 파일
+     * @param uploadType 업로드 유형 (RECORD, PROFILE, GROUP)
+     * @param ownerId    경로에 사용할 식별자 (userIdx, groupIdx 등)
+     * @return 저장된 Image 엔티티
      */
-    public String uploadRecordImage(MultipartFile file, Long userIdx) {
+    @Transactional
+    public Image upload(MultipartFile file, UploadType uploadType, Long ownerId) {
         validateImageFile(file);
 
-        String extension = extractExtension(file.getOriginalFilename());
-        String filename = UUID.randomUUID() + "." + extension;
-        String relativePath = "/recode/" + userIdx + "/";
+        String originalFilename = file.getOriginalFilename();
+        String extension = extractExtension(originalFilename);
+        String storedExtension = extension.equals("webp") ? "jpg" : extension;
+        String filename = UUID.randomUUID() + "." + storedExtension;
+        String relativePath = uploadType.buildRelativePath(ownerId);
 
         File dir = new File(basePath + relativePath);
         if (!dir.exists() && !dir.mkdirs()) {
             throw new IllegalStateException("업로드 디렉토리 생성에 실패했습니다.");
         }
 
-        File dest = new File(dir, filename);
+        byte[] resized;
+        long fileSize;
         try {
             byte[] originalBytes = file.getBytes();
-            byte[] resized = compressUnderTarget(originalBytes, extension);
-            try (FileOutputStream fos = new FileOutputStream(dest)) {
-                fos.write(resized);
-            }
+            resized = compressUnderTarget(originalBytes, extension);
+            fileSize = resized.length;
+        } catch (IOException e) {
+            throw new IllegalStateException("파일 처리에 실패했습니다.");
+        }
+
+        File dest = new File(dir, filename);
+        try (FileOutputStream fos = new FileOutputStream(dest)) {
+            fos.write(resized);
         } catch (IOException e) {
             throw new IllegalStateException("파일 저장에 실패했습니다.");
         }
 
-        return "/upload" + relativePath + filename;
+        String filePath = "/upload" + relativePath + filename;
+        String contentType = "webp".equals(extension) ? "image/jpeg" : file.getContentType();
+
+        Image image = Image.builder()
+                .uploadType(uploadType)
+                .ownerIdx(ownerId)
+                .filePath(filePath)
+                .originalFilename(originalFilename)
+                .fileSize(fileSize)
+                .contentType(contentType)
+                .build();
+
+        return imageRepository.save(image);
+    }
+
+    /** 기록증 이미지 업로드 */
+    public Image uploadRecordImage(MultipartFile file, Long userIdx) {
+        return upload(file, UploadType.RECORD, userIdx);
+    }
+
+    /** 사용자 프로필 이미지 업로드 */
+    public Image uploadProfileImage(MultipartFile file, Long userIdx) {
+        return upload(file, UploadType.PROFILE, userIdx);
+    }
+
+    /** 모임 프로필 이미지 업로드 */
+    public Image uploadGroupImage(MultipartFile file, Long groupIdx) {
+        return upload(file, UploadType.GROUP, groupIdx);
     }
 
     /**
@@ -65,7 +110,6 @@ public class FileUploadService {
      * 2단계: 품질 0.1 유지, 해상도를 0.9배씩 축소
      */
     private byte[] compressUnderTarget(byte[] originalBytes, String extension) throws IOException {
-        // 1단계: 품질 단계적 감소
         for (double quality = 0.8; quality >= 0.1 - 1e-9; quality -= 0.1) {
             byte[] result = resize(originalBytes, MAX_WIDTH, MAX_HEIGHT, quality, extension);
             if (result.length < TARGET_SIZE_BYTES) {
@@ -73,7 +117,6 @@ public class FileUploadService {
             }
         }
 
-        // 2단계: 해상도 축소 (품질은 0.1 고정)
         int width = MAX_WIDTH;
         int height = MAX_HEIGHT;
         while (width > 100 && height > 100) {
@@ -85,7 +128,6 @@ public class FileUploadService {
             }
         }
 
-        // 최소 해상도까지 줄여도 초과 시 그대로 반환
         return resize(originalBytes, width, height, 0.1, extension);
     }
 

@@ -7,9 +7,11 @@ import com.raceon.api.domain.group.entity.Group;
 import com.raceon.api.domain.group.service.GroupService;
 import com.raceon.api.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -20,11 +22,13 @@ public class GroupController {
 
     private final GroupService groupService;
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<GroupResponse>> create(Authentication auth,
-                                                              @RequestBody GroupCreateRequest request) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<GroupResponse>> create(
+            Authentication auth,
+            @RequestPart("data") GroupCreateRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile imageFile) {
         Long userIdx = Long.parseLong(auth.getName());
-        Group group = groupService.create(userIdx, request.getName(), request.getDescription(), request.getProfileImage(),
+        Group group = groupService.create(userIdx, request.getName(), request.getDescription(), imageFile,
                 request.getGroupMembers(), request.getManagerMembers(), request.getAreaCode(),
                 request.getTag1(), request.getTag2(), request.getTag3(), request.getTag4(), request.getTag5());
         return ResponseEntity.ok(ApiResponse.ok(new GroupResponse(group)));
@@ -47,12 +51,14 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.ok(new GroupResponse(group)));
     }
 
-    @PatchMapping("/{groupIdx}")
-    public ResponseEntity<ApiResponse<Void>> update(Authentication auth,
-                                                     @PathVariable Long groupIdx,
-                                                     @RequestBody GroupUpdateRequest request) {
+    @PatchMapping(value = "/{groupIdx}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Void>> update(
+            Authentication auth,
+            @PathVariable Long groupIdx,
+            @RequestPart("data") GroupUpdateRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile imageFile) {
         Long userIdx = Long.parseLong(auth.getName());
-        groupService.update(userIdx, groupIdx, request.getName(), request.getDescription(), request.getProfileImage(),
+        groupService.update(userIdx, groupIdx, request.getName(), request.getDescription(), imageFile,
                 request.getGroupMembers(), request.getManagerMembers(), request.getAreaCode(),
                 request.getTag1(), request.getTag2(), request.getTag3(), request.getTag4(), request.getTag5());
         return ResponseEntity.ok(ApiResponse.ok());
@@ -65,5 +71,4 @@ public class GroupController {
         groupService.delete(userIdx, groupIdx);
         return ResponseEntity.ok(ApiResponse.ok());
     }
-
 }

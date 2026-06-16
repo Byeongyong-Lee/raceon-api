@@ -3,6 +3,7 @@ package com.raceon.api.domain.userrace.entity;
 import com.raceon.api.domain.auth.entity.User;
 import com.raceon.api.domain.race.entity.Race;
 import com.raceon.api.domain.userrace.dto.UserRaceRecordUpdateRequest;
+import com.raceon.api.global.upload.Image;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -51,8 +52,9 @@ public class UserRace {
     @Column(columnDefinition = "TEXT")
     private String memo;
 
-    @Column(name = "record_image_path", columnDefinition = "TEXT")
-    private String recordImagePath;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "record_image_idx")
+    private Image recordImage;
 
     @Column(name = "del_at", nullable = false, length = 1)
     @Builder.Default
@@ -80,7 +82,7 @@ public class UserRace {
         this.memo = request.getMemo();
     }
 
-    public void updateRecordImagePath(String recordImagePath) {
-        this.recordImagePath = recordImagePath;
+    public void updateRecordImage(Image recordImage) {
+        this.recordImage = recordImage;
     }
 }

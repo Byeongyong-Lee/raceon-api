@@ -6,7 +6,6 @@ import lombok.Getter;
 public class GroupUpdateRequest {
     private String name;
     private String description;
-    private String profileImage;
     private Integer groupMembers;
     private Integer managerMembers;
     private String areaCode;

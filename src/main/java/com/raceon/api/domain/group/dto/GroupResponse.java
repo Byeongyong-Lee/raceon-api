@@ -34,7 +34,7 @@ public class GroupResponse {
         this.tag3 = group.getTag3();
         this.tag4 = group.getTag4();
         this.tag5 = group.getTag5();
-        this.profileImage = group.getProfileImage();
+        this.profileImage = group.getProfileImage() != null ? group.getProfileImage().getFilePath() : null;
         this.ownerIdx = group.getOwnerIdx();
         this.createDt = group.getCreateDt();
     }
