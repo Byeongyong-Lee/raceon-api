@@ -62,6 +62,12 @@ com.raceon.api
 │   │   ├── repository/RaceSearchCondition.java     # 검색 조건 DTO
 │   │   ├── service/RaceService.java                # 조회 로직
 │   │   └── service/RaceCrawlerService.java         # 크롤링 + @Scheduled
+│   ├── area/
+│   │   ├── controller/AreaController.java          # GET /api/areas
+│   │   ├── dto/AreaResponse.java
+│   │   ├── entity/Area.java
+│   │   ├── repository/AreaRepository.java
+│   │   └── service/AreaService.java
 │   ├── user/
 │   │   ├── controller/UserController.java          # GET /api/users/me
 │   │   ├── dto/UserResponse.java
@@ -122,7 +128,7 @@ com.raceon.api
 
 서버에서 소셜 API를 직접 호출하지 않음. 클라이언트가 소셜 SDK로 사용자 정보를 수집해 전달.
 
-`/api/auth/**`, `/api/races` 인증 불필요. 나머지 전체 인증 필요. JWT subject = `userIdx`.
+`/api/auth/**`, `/api/races`, `/api/areas` 인증 불필요. 나머지 전체 인증 필요. JWT subject = `userIdx`.
 
 ### 인증 API
 
@@ -171,6 +177,40 @@ com.raceon.api
 - 토큰에 `type` 클레임 포함 — Refresh Token을 Access Token으로 사용 불가
 - Refresh Token은 DB 저장값과 일치해야 재발급 허용 (탈취 방지)
 - 재로그인 시 Refresh Token 갱신 → 기존 Refresh Token 무효화
+
+## area 테이블
+
+행정안전부 법정동코드 기준 행정구역 데이터. 초기 데이터(시도 17개 + 시군구 전체)는 DB에 직접 삽입.
+
+| DB 컬럼 | Java 필드 | 설명 |
+|---------|-----------|------|
+| area_idx | areaIdx | BIGSERIAL PK |
+| area_code | areaCode | 행정구역코드 (시도 2자리 / 시군구 5자리 / 읍면동 8자리), UNIQUE |
+| area_name | areaName | 행정구역명 (예: 종로구, 수원시 장안구) |
+| area_level | areaLevel | 1=시도, 2=시군구, 3=읍면동 |
+| parent_code | parentCode | 상위 행정구역 코드 (시도는 NULL) |
+| full_name | fullName | 전체 경로명 (예: 경기도 수원시 장안구) |
+| create_dt | createDt | 생성일시 |
+
+### area API
+
+| Method | URL | 인증 | 설명 |
+|--------|-----|------|------|
+| GET | `/api/areas` | 불필요 | 행정구역 목록 조회 |
+
+**쿼리 파라미터**
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `level` | Integer (선택) | 1=시도, 2=시군구, 3=읍면동 |
+| `parentCode` | String (선택) | 상위 행정구역 코드 |
+
+```
+GET /api/areas?level=1               → 시도 17개
+GET /api/areas?level=2&parentCode=11 → 서울 시군구 25개
+GET /api/areas?level=3&parentCode=11010 → 종로구 읍면동 전체
+GET /api/areas                       → 전체 조회
+```
 
 ## 마라톤 대회 크롤링
 
