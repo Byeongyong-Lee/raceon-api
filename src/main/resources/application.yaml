@@ -1,5 +1,5 @@
 server:
-  port: 18300
+  port: 28300
   servlet:
     encoding:
       charset: UTF-8
