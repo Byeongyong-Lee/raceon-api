@@ -373,7 +373,7 @@ private BooleanExpression delAtEq(String delAt) {
 
 ## 설정 (`src/main/resources/application.yaml`)
 
-- **서버 포트**: `18300`
+- **서버 포트**: `28300`
 - **DB**: Oracle Cloud VM PostgreSQL `168.107.51.69:5432/raceon`
 - **JWT**: `jwt.secret` (Base64), `jwt.access-expiration: 3600000` (1시간), `jwt.refresh-expiration: 604800000` (7일)
 - **멀티파트**: `max-file-size: 10MB`, `max-request-size: 10MB`
