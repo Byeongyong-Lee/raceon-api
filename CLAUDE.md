@@ -371,6 +371,70 @@ private BooleanExpression delAtEq(String delAt) {
 - **설정**: `application.yaml`의 `upload.base-path` (기본 `./upload`, 운영 시 절대경로 권장)
 - `FileUploadService` — 업로드·리사이즈 담당, `WebMvcConfig` — `/upload/**` 정적 리소스 핸들러 등록
 
+## 오라클 클라우드 배포
+
+### 서버 정보
+
+| 항목 | 값 |
+|------|-----|
+| 서버 IP | `168.110.100.12` |
+| 포트 | `28300` |
+| API Base URL | `http://168.110.100.12:28300` |
+| OS | Ubuntu 22.04 |
+| Shape | VM.Standard.E2.1.Micro (AMD, 1 OCPU, 1GB RAM) |
+| 배포 경로 | `/home/raceon-api/raceon-api.war` |
+| 서비스 | systemd (`raceon-api.service`) |
+
+### SSH 접속 (PuTTY)
+
+- **Host**: `168.110.100.12`
+- **Port**: `22`
+- **User**: `ubuntu`
+- **Key**: `E:\workspace\raceon\ssh-key-2026-06-16.key` → PuTTYgen으로 `.ppk` 변환 후 사용
+
+### 재배포 방법
+
+**1. 로컬에서 빌드:**
+```powershell
+cd E:\workspace\raceon-api
+./gradlew bootWar
+```
+
+**2. 서버로 전송 (PowerShell):**
+```powershell
+scp -i "E:\workspace\raceon\ssh-key-2026-06-16.key" `
+  E:\workspace\raceon-api\build\libs\api-0.0.1-SNAPSHOT.war `
+  ubuntu@168.110.100.12:/home/raceon-api/raceon-api.war
+```
+
+**3. 서버에서 재시작 (PuTTY):**
+```bash
+sudo systemctl restart raceon-api
+```
+
+**4. 로그 확인:**
+```bash
+sudo journalctl -u raceon-api -f
+```
+
+### 서비스 관리 명령어
+
+```bash
+sudo systemctl start raceon-api    # 시작
+sudo systemctl stop raceon-api     # 중지
+sudo systemctl restart raceon-api  # 재시작
+sudo systemctl status raceon-api   # 상태 확인
+```
+
+### 방화벽 (iptables)
+
+```bash
+sudo iptables -L INPUT -n | grep 28300  # 규칙 확인
+sudo netfilter-persistent save          # 규칙 저장
+```
+
+Oracle Cloud 콘솔 Security List에도 TCP 28300 Ingress 규칙 등록 필요.
+
 ## 설정 (`src/main/resources/application.yaml`)
 
 - **서버 포트**: `28300`
