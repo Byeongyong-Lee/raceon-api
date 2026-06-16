@@ -1,6 +1,7 @@
 package com.raceon.api.domain.group.dto;
 
 import com.raceon.api.domain.group.entity.Group;
+import com.raceon.api.domain.group.enums.GroupRole;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -21,8 +22,10 @@ public class GroupResponse {
     private final String profileImage;
     private final Long ownerIdx;
     private final LocalDateTime createDt;
+    private final GroupRole role;       // 비회원/비인증 시 null
+    private final long memberCount;
 
-    public GroupResponse(Group group) {
+    public GroupResponse(Group group, GroupRole role, long memberCount) {
         this.groupIdx = group.getGroupIdx();
         this.name = group.getName();
         this.description = group.getDescription();
@@ -37,5 +40,7 @@ public class GroupResponse {
         this.profileImage = group.getProfileImage() != null ? group.getProfileImage().getFilePath() : null;
         this.ownerIdx = group.getOwnerIdx();
         this.createDt = group.getCreateDt();
+        this.role = role;
+        this.memberCount = memberCount;
     }
 }

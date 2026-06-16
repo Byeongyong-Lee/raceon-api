@@ -57,12 +57,26 @@ public class GroupService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다."));
     }
 
-    public List<Group> getMyGroups(Long userIdx) {
-        List<GroupMember> members = groupMemberRepository.findByUserIdxAndDelAt(userIdx, "N");
-        List<Long> groupIds = members.stream().map(GroupMember::getGroupIdx).toList();
-        return groupRepository.findAllById(groupIds).stream()
-                .filter(g -> "N".equals(g.getDelAt()))
-                .toList();
+    /** 전체 모임 탐색 (keyword·areaCode 선택 필터) */
+    public List<Group> searchGroups(String keyword, String areaCode) {
+        return groupRepository.search(areaCode, keyword);
+    }
+
+    /** 내 모임 멤버십 목록 (role 포함) */
+    public List<GroupMember> getMyMemberships(Long userIdx) {
+        return groupMemberRepository.findByUserIdxAndDelAt(userIdx, "N");
+    }
+
+    /** 모임 멤버 수 */
+    public long getMemberCount(Long groupIdx) {
+        return groupMemberRepository.countByGroupIdxAndDelAt(groupIdx, "N");
+    }
+
+    /** 특정 유저의 모임 내 역할 (비회원이면 null) */
+    public GroupRole getUserRole(Long groupIdx, Long userIdx) {
+        return groupMemberRepository.findByGroupIdxAndUserIdxAndDelAt(groupIdx, userIdx, "N")
+                .map(GroupMember::getRole)
+                .orElse(null);
     }
 
     @Transactional
