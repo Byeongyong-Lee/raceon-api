@@ -26,6 +26,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+        // React Native용 순수 WebSocket 엔드포인트 (SockJS 없음)
+        registry.addEndpoint("/ws/native")
+                .setAllowedOriginPatterns("*");
     }
 
     @Override
